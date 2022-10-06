@@ -22,7 +22,6 @@
 import os, shutil, sys
 import pandas as pd
 
-cache = "/usr/local/share/openfido" # additional path for downloaded modules
 apiurl = "https://api.github.com"
 rawurl = "https://raw.githubusercontent.com"
 giturl = "https://github.com"
@@ -30,12 +29,17 @@ traceback_file = "/dev/stderr"
 
 DEFAULT_OUTPUT=["zip", "csv", "png", "glm", "json"]
 
+POSTPROCS_DIR = os.path.join(os.path.dirname(__file__),'postproc')
+
+
+
+
 def main(inputs: list[str], outputs: list[str], options=[]):
 	INPUTNAME = inputs[0]
 	OUTPUTDIR = os.path.abspath(os.path.dirname(outputs[0]))
 	OUTPUTNAME = os.path.basename(outputs[0])
 	CSVDIRNAME = INPUTNAME.split("/")[-1].split(".")[0]
-	CSVDIR = f"/tmp/openfido/{CSVDIRNAME}"
+	CSVDIR = f"./{CSVDIRNAME}"
 	SRCDIR = os.getcwd()
 
 	if os.path.exists(CSVDIR):
@@ -75,6 +79,7 @@ def main(inputs: list[str], outputs: list[str], options=[]):
 		OUTPUTTYPE = OUTPUTNAME.split(".")[1]
 	else:
 		print(f"  No 'config.csv', using default settings:",flush=True)
+		settings = {}
 		INPUTTYPE = INPUTNAME.split(".")[1]
 		TABLES = "glm"
 		EXTRACT = "all"
@@ -129,7 +134,9 @@ def main(inputs: list[str], outputs: list[str], options=[]):
 	print(f"  OUTPUTS = {PROCCONFIG['outputs']}",flush=True)
 	print(f"  output_folder = {PROCCONFIG['output_folder']}",flush=True)
 
-	result = os.popen(f"python3 {cache}/cyme-extract/postproc/write_glm.py --cyme-tables").read()
+
+	# Only returns list of tables required for MDB file
+	result = os.popen(f"python3 {POSTPROCS_DIR}/write_glm.py --cyme-tables").read()
 	tables = result.split()
 
 	for table in tables:
@@ -148,7 +155,8 @@ def main(inputs: list[str], outputs: list[str], options=[]):
 	for process in (PROCCONFIG['postproc']):
 		if process == process: 
 			try:
-				os.system(f"python3 {cache}/cyme-extract/postproc/{process} -i {PROCCONFIG['input_folder']} -o {PROCCONFIG['output_folder']} -c config.csv -d {CSVDIR} -g {OUTPUTNAME} {flags}")
+				# Run postproc on 
+				os.system(f"python3 {POSTPROCS_DIR}/{process} -i {PROCCONFIG['input_folder']} -o {PROCCONFIG['output_folder']} -c config.csv -d {CSVDIR} -g {OUTPUTNAME} {flags}")
 			except:
 				import traceback
 				print(f"ERROR [mdb-cyme2glm]: {traceback.print_exc()}")
